@@ -125,8 +125,8 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	  else if [ -x /bin/bash ]; then echo /bin/bash; \
 	  else echo sh; fi ; fi)
 
-HOSTCC       = cc
-HOSTCXX      = c++
+HOSTCC       = gcc
+HOSTCXX      = g++
 HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer
 HOSTCXXFLAGS = -O2
 
@@ -183,8 +183,8 @@ include $(srctree)/scripts/Kbuild.include
 # this looks a bit horrible, but 'VAR ?= VALUE' preserves builtin values
 # rather than only user-supplied values from env or command-line
 $(call set_if_default_or_unset,AS,$$(CROSS_COMPILE)as)
-$(call set_if_default_or_unset,LD,$$(CROSS_COMPILE)cc)
-$(call set_if_default_or_unset,CC,$$(CROSS_COMPILE)cc)
+$(call set_if_default_or_unset,LD,$$(CROSS_COMPILE)gc)
+$(call set_if_default_or_unset,CC,$$(CROSS_COMPILE)gc)
 $(call set_if_default_or_unset,CPP,$$(CC) -E)
 $(call set_if_default_or_unset,AR,$$(CROSS_COMPILE)ar)
 $(call set_if_default_or_unset,NM,$$(CROSS_COMPILE)nm)
