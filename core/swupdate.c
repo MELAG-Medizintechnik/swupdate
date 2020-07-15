@@ -109,6 +109,7 @@ static struct option long_options[] = {
 	{"check", no_argument, NULL, 'c'},
 	{"postupdate", required_argument, NULL, 'p'},
 	{"preupdate", required_argument, NULL, 'P'},
+	{"swlist", required_argument, NULL, 'z'},
 	{NULL, 0, NULL, 0}
 };
 
@@ -153,6 +154,7 @@ static void usage(char *programname)
 		" -H, --hwrevision <board>:<rev> : Set hardware revision\n"
 #endif
 		" -c, --check                    : check image and exit, use with -i <filename>\n"
+		" -z, --swlist <filename>        : if set, write version-list of software-components to filename>\n"
 		" -h, --help                     : print this help and exit\n"
 		);
 #ifdef CONFIG_DOWNLOAD
@@ -333,11 +335,6 @@ static int install_from_file(char *fname, int check, int write_sw_list, char *sw
 	ret = parse(&swcfg, swdescfilename);
 	if (ret) {
 		ERROR("failed to parse " SW_DESCRIPTION_FILENAME "!");
-		exit(EXIT_FAILURE);
-	}
-
-	if (check_hw_compatibility(&swcfg)) {
-		ERROR("SW not compatible with hardware");
 		exit(EXIT_FAILURE);
 	}
 

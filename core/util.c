@@ -393,16 +393,11 @@ out:
 int check_hw_compatibility(struct swupdate_cfg *cfg)
 {
 	struct hw_type *hw;
-	int ret;
-
-	ret = get_hw_revision(&cfg->hw);
-	if (ret < 0)
-		return -1;
 
 	TRACE("Hardware %s Revision: %s", cfg->hw.boardname, cfg->hw.revision);
 	LIST_FOREACH(hw, &cfg->hardware, next) {
-		if (hw &&
-		    (!hwid_match(hw->revision, cfg->hw.revision))) {
+		if (hw && strlen(hw->revision) == strlen(cfg->hw.revision) &&
+				(!strcmp(hw->revision, cfg->hw.revision))) {
 			TRACE("Hardware compatibility verified");
 			return 0;
 		}
