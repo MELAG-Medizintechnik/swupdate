@@ -487,3 +487,24 @@ int postupdate(struct swupdate_cfg *swcfg, const char *info)
 
 	return 0;
 }
+
+int extract_image_versions(struct swupdate_cfg *software, char *swlistname) {
+	struct img_type *img;
+
+	FILE* fdOut = fopen(swlistname, "w");
+	if (!fdOut) {
+		ERROR("File %s cannot be opened", swlistname);
+		return -1;
+	}
+
+	LIST_FOREACH(img, &software->images, next) {
+		fprintf(fdOut, "%s\t%s\n",
+			img->id.name,
+			img->id.version);
+	}
+
+	fclose(fdOut);
+	fdOut = NULL;
+
+	return 0;
+}
