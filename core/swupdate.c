@@ -109,6 +109,7 @@ static struct option long_options[] = {
 	{"check", no_argument, NULL, 'c'},
 	{"postupdate", required_argument, NULL, 'p'},
 	{"preupdate", required_argument, NULL, 'P'},
+	{"swlist", required_argument, NULL, 'z'},
 	{NULL, 0, NULL, 0}
 };
 
@@ -153,6 +154,7 @@ static void usage(char *programname)
 		" -H, --hwrevision <board>:<rev> : Set hardware revision\n"
 #endif
 		" -c, --check                    : check image and exit, use with -i <filename>\n"
+		" -z, --swlist <filename>        : if set, write version-list of software-components to filename>\n"
 		" -h, --help                     : print this help and exit\n"
 		);
 #ifdef CONFIG_DOWNLOAD
@@ -293,7 +295,7 @@ static int searching_for_image(char *name)
 	return fd;
 }
 
-static int install_from_file(char *fname, int check)
+static int install_from_file(char *fname, int check, int write_sw_list, char *swlistname)
 {
 	int fdsw;
 	off_t pos;
@@ -336,11 +338,6 @@ static int install_from_file(char *fname, int check)
 		exit(EXIT_FAILURE);
 	}
 
-	if (check_hw_compatibility(&swcfg)) {
-		ERROR("SW not compatible with hardware");
-		exit(EXIT_FAILURE);
-	}
-
 	if (cpio_scan(fdsw, &swcfg, pos) < 0) {
 		ERROR("failed to scan for pos '%lld'!", (long long)pos);
 		close(fdsw);
@@ -360,6 +357,14 @@ static int install_from_file(char *fname, int check)
 	if (ret) {
 		ERROR("failed to check scripts!");
 		exit(EXIT_FAILURE);
+	}
+
+	if (write_sw_list) {
+		ret = extract_image_versions(&swcfg, swlistname);
+		if (ret) {
+			ERROR("failed to write version list!\n");
+			exit(1);
+		}
 	}
 
 	if (check) {
@@ -599,11 +604,13 @@ int main(int argc, char **argv)
 {
 	int c;
 	char fname[MAX_IMAGE_FNAME];
+	char swlistname[MAX_IMAGE_FNAME]; /* Path to sw-component list to write out  */
 	char *cfgfname = NULL;
 	const char *software_select = NULL;
 	int opt_i = 0;
 	int opt_e = 0;
 	int opt_c = 0;
+	int opt_z = 0;
 	char image_url[MAX_URL];
 	char main_options[256];
 	unsigned int public_key_mandatory = 0;
@@ -656,6 +663,8 @@ int main(int argc, char **argv)
 #ifdef CONFIG_ENCRYPTED_IMAGES
 	strcat(main_options, "K:");
 #endif
+
+	strcat(main_options, "z:");
 
 	memset(fname, 0, sizeof(fname));
 
@@ -866,6 +875,10 @@ int main(int argc, char **argv)
 			strlcpy(swcfg.globals.preupdatecmd, optarg,
 				sizeof(swcfg.globals.preupdatecmd));
 			break;
+		case 'z':
+			strncpy(swlistname, optarg, sizeof(swlistname));
+			opt_z = 1;
+			break;
 		default:
 			usage(argv[0]);
 			exit(EXIT_FAILURE);
@@ -1032,7 +1045,7 @@ int main(int argc, char **argv)
 
 	if (opt_i) {
 
-		result = install_from_file(fname, opt_c);
+		result = install_from_file(fname, opt_c, opt_z, swlistname);
 		switch (result) {
 		case EXIT_FAILURE:
 			if (swcfg.bootloader_transaction_marker) {

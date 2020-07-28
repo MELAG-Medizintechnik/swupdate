@@ -206,39 +206,54 @@ static int parse_hw_compatibility(parsertype p, void *cfg, struct swupdate_cfg *
 	int count, i;
 	char s[SWUPDATE_GENERAL_STRING_SIZE];
 	struct hw_type *hwrev;
+	char baseBoardName[SWUPDATE_GENERAL_STRING_SIZE];
 
-	setting = find_node(p, cfg, "hardware-compatibility", swcfg);
-	if (setting == NULL) {
-		ERROR("HW compatibility not found");
-		return -1;
-	}
+	strncpy(baseBoardName, swcfg->hw.boardname, sizeof(baseBoardName));
+	baseBoardName[sizeof(baseBoardName) - 1] = '\0';
 
-	count = get_array_length(p, setting);
+	for (int eIdx = 1; eIdx <= 16; ++eIdx) {
+		snprintf(swcfg->hw.boardname, sizeof(swcfg->hw.boardname), "%s*%d", baseBoardName, eIdx);
+		swcfg->hw.boardname[sizeof(swcfg->hw.boardname) - 1] = '\0';
 
-	for(i = 0; i < count; ++i) {
-		hw = get_elem_from_idx(p, setting, i);
-
-		if (!hw)
+		setting = find_node(p, cfg, "hardware-compatibility", swcfg);
+		if (setting == NULL) {
 			continue;
-
-		s[0] = '\0';
-		GET_FIELD_STRING(p, hw, NULL, s);
-		if (!strlen(s))
-			continue;
-
-		hwrev = (struct hw_type *)calloc(1, sizeof(struct hw_type));
-		if (!hwrev) {
-			ERROR("No memory: malloc failed");
-			return -1;
 		}
 
-		strlcpy(hwrev->revision, s, sizeof(hwrev->revision));
-		LIST_INSERT_HEAD(&swcfg->hardware, hwrev, next);
-		TRACE("Accepted Hw Revision : %s", hwrev->revision);
+		LIST_INIT(&swcfg->hardware);
+		count = get_array_length(p, setting);
+
+		for (i = 0; i < count; ++i) {
+			hw = get_elem_from_idx(p, setting, i);
+
+			if (!hw)
+				continue;
+
+			s[0] = '\0';
+			GET_FIELD_STRING(p, hw, NULL, s);
+			if (!strlen(s))
+				continue;
+
+			hwrev = (struct hw_type *) calloc(1, sizeof(struct hw_type));
+			if (!hwrev) {
+				ERROR("No memory: malloc failed\n");
+				return -1;
+			}
+
+			strncpy(hwrev->revision, s, sizeof(hwrev->revision));
+			LIST_INSERT_HEAD(&swcfg->hardware, hwrev, next);
+			TRACE("Accepted Hw Revision : %s", hwrev->revision);
+		}
+
+		if (check_hw_compatibility(swcfg) == 0) {
+			return 0; // Compatible
+		}
 	}
 
-	return 0;
+	ERROR("SW not compatible with hardware\n");
+	exit(1);
 }
+
 #else
 static int parse_hw_compatibility(parsertype __attribute__ ((__unused__))p,
 		void __attribute__ ((__unused__))  *cfg,
